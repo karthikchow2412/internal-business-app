@@ -7,6 +7,7 @@ import streamlit as st
 
 
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/products")
+SHOW_API_STATUS = os.getenv("SHOW_API_STATUS", "false").lower() == "true"
 
 CUSTOMER_TYPES = {
     "Dealer": 0.90,
@@ -72,13 +73,14 @@ st.title("Internal Business App Demo")
 st.caption("Python version: Order + Barcode + Local API integration")
 
 products, api_ok = fetch_products()
-if api_ok:
-    st.success(f"Product list loaded from API: {API_URL}")
-else:
-    st.warning(
-        "API unavailable, using local fallback product data. "
-        "For full API mode, start api_server.py locally or set API_URL in deployment."
-    )
+if SHOW_API_STATUS:
+    if api_ok:
+        st.success(f"Product list loaded from API: {API_URL}")
+    else:
+        st.warning(
+            "API unavailable, using local fallback product data. "
+            "For full API mode, start api_server.py locally or set API_URL in deployment."
+        )
 
 tabs = st.tabs(["Order App", "Barcode Scanner"])
 
@@ -87,7 +89,7 @@ with tabs[0]:
     customer_type = st.radio("Customer Type", list(CUSTOMER_TYPES.keys()), horizontal=True)
     multiplier = CUSTOMER_TYPES[customer_type]
 
-    st.markdown("### Product List (from API)")
+    st.markdown("### Product List")
     for product in products:
         adjusted_price = product["price"] * multiplier
         st.write(
