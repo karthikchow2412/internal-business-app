@@ -86,3 +86,16 @@ If given more time, I would:
 - [ ] Demo video (recommended for Python version)
 - [ ] GitHub code link
 - [ ] Short explanation (Approach, Challenges, Improvements)
+
+## Deploy On Railway
+
+1. Create a new Railway project from this GitHub repo.
+2. Railway will detect Python automatically.
+3. Ensure start command is:
+   `streamlit run streamlit_app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true`
+4. Deploy.
+
+Optional API mode:
+- If you also deploy `api_server.py` as a separate Railway service, set:
+  - `API_URL=https://<your-api-service-url>/products`
+- If `API_URL` is not set or API is down, app falls back to local product data.

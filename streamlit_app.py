@@ -1,11 +1,12 @@
 import re
+import os
 from typing import Dict, List, Optional
 
 import requests
 import streamlit as st
 
 
-API_URL = "http://127.0.0.1:8000/products"
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000/products")
 
 CUSTOMER_TYPES = {
     "Dealer": 0.90,
@@ -19,11 +20,23 @@ BARCODE_PRODUCT_MAP = {
 }
 
 
-def fetch_products() -> List[Dict]:
-    response = requests.get(API_URL, timeout=5)
-    response.raise_for_status()
-    data = response.json()
-    return data.get("products", [])
+def local_products() -> List[Dict]:
+    return [
+        {"id": 1, "name": "Cement Bag 50kg", "price": 380, "moq": 5},
+        {"id": 2, "name": "Steel Rod 10mm", "price": 620, "moq": 3},
+        {"id": 3, "name": "Wall Paint 20L", "price": 1150, "moq": 2},
+        {"id": 4, "name": "Floor Tiles Box", "price": 890, "moq": 4},
+    ]
+
+
+def fetch_products() -> tuple[List[Dict], bool]:
+    try:
+        response = requests.get(API_URL, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        return data.get("products", []), True
+    except Exception:
+        return local_products(), False
 
 
 def validate_barcode(code: str) -> Dict[str, str]:
@@ -58,14 +71,14 @@ st.set_page_config(page_title="Internal Business App Demo", layout="centered")
 st.title("Internal Business App Demo")
 st.caption("Python version: Order + Barcode + Local API integration")
 
-try:
-    products = fetch_products()
-except Exception as exc:
-    st.error(
-        "Could not fetch products from API. Please start api_server.py first.\n"
-        f"Error: {exc}"
+products, api_ok = fetch_products()
+if api_ok:
+    st.success(f"Product list loaded from API: {API_URL}")
+else:
+    st.warning(
+        "API unavailable, using local fallback product data. "
+        "For full API mode, start api_server.py locally or set API_URL in deployment."
     )
-    st.stop()
 
 tabs = st.tabs(["Order App", "Barcode Scanner"])
 
