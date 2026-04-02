@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "Internal App Demo",
+    "slug": "oytra-internal-app-demo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "platforms": [
+      "android",
+      "ios"
+    ],
+    "android": {
+      "package": "com.oytra.internalappdemo"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Internal App Demo to use your camera for barcode scanning."
+        }
+      ]
+    ]
+  }
+}
