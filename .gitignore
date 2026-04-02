@@ -1,9 +1,3 @@
-node_modules
-.expo
-.expo-shared
-dist
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-*.keystore
-*.jks
+.venv
+__pycache__
+*.pyc

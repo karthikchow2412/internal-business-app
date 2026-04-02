@@ -1,0 +1,119 @@
+import re
+from typing import Dict, List, Optional
+
+import requests
+import streamlit as st
+
+
+API_URL = "http://127.0.0.1:8000/products"
+
+CUSTOMER_TYPES = {
+    "Dealer": 0.90,
+    "Retail": 1.10,
+}
+
+BARCODE_PRODUCT_MAP = {
+    "123456": "Cement Bag 50kg",
+    "654321": "Steel Rod 10mm",
+    "111222": "Wall Paint 20L",
+}
+
+
+def fetch_products() -> List[Dict]:
+    response = requests.get(API_URL, timeout=5)
+    response.raise_for_status()
+    data = response.json()
+    return data.get("products", [])
+
+
+def validate_barcode(code: str) -> Dict[str, str]:
+    clean_code = code.strip()
+    match = re.search(r"(\d)$", clean_code)
+    if not match:
+        return {
+            "product": BARCODE_PRODUCT_MAP.get(clean_code, "Unknown Product"),
+            "status": "Invalid",
+            "symbol": "❌",
+            "reason": "Barcode must end with a digit.",
+        }
+
+    last_digit = int(match.group(1))
+    is_valid = last_digit % 2 == 0
+    return {
+        "product": BARCODE_PRODUCT_MAP.get(clean_code, "Unknown Product"),
+        "status": "Valid" if is_valid else "Invalid",
+        "symbol": "✅" if is_valid else "❌",
+        "reason": "Ends with even digit." if is_valid else "Ends with odd digit.",
+    }
+
+
+def get_product_by_name(products: List[Dict], selected_name: str) -> Optional[Dict]:
+    for item in products:
+        if item["name"] == selected_name:
+            return item
+    return None
+
+
+st.set_page_config(page_title="Internal Business App Demo", layout="centered")
+st.title("Internal Business App Demo")
+st.caption("Python version: Order + Barcode + Local API integration")
+
+try:
+    products = fetch_products()
+except Exception as exc:
+    st.error(
+        "Could not fetch products from API. Please start api_server.py first.\n"
+        f"Error: {exc}"
+    )
+    st.stop()
+
+tabs = st.tabs(["Order App", "Barcode Scanner"])
+
+with tabs[0]:
+    st.subheader("Order App")
+    customer_type = st.radio("Customer Type", list(CUSTOMER_TYPES.keys()), horizontal=True)
+    multiplier = CUSTOMER_TYPES[customer_type]
+
+    st.markdown("### Product List (from API)")
+    for product in products:
+        adjusted_price = product["price"] * multiplier
+        st.write(
+            f"- **{product['name']}** | Price: Rs {adjusted_price:.2f} | MOQ: {product['moq']}"
+        )
+
+    st.markdown("### Place Order")
+    product_names = [p["name"] for p in products]
+    selected_name = st.selectbox("Select Product", product_names)
+    quantity = st.number_input("Enter Quantity", min_value=1, step=1)
+
+    if st.button("Place Order"):
+        selected = get_product_by_name(products, selected_name)
+        if not selected:
+            st.error("Selected product not found.")
+        elif quantity < selected["moq"]:
+            st.error(f"MOQ validation failed. Minimum order quantity is {selected['moq']}.")
+        else:
+            unit_price = selected["price"] * multiplier
+            total = unit_price * quantity
+            st.success("Order placed successfully.")
+            st.write(f"Product: **{selected['name']}**")
+            st.write(f"Customer Type: **{customer_type}**")
+            st.write(f"Quantity: **{int(quantity)}**")
+            st.write(f"Unit Price: **Rs {unit_price:.2f}**")
+            st.write(f"Total Price: **Rs {total:.2f}**")
+
+with tabs[1]:
+    st.subheader("Barcode Scanner Logic")
+    st.caption(
+        "Assignment rule: If barcode ends with even digit -> Valid, otherwise Invalid."
+    )
+
+    barcode = st.text_input("Enter or scan barcode")
+    if st.button("Validate Barcode"):
+        if not barcode.strip():
+            st.warning("Please enter a barcode value.")
+        else:
+            result = validate_barcode(barcode)
+            st.write(f"Product: **{result['product']}**")
+            st.write(f"Status: **{result['symbol']} {result['status']}**")
+            st.write(f"Reason: {result['reason']}")
